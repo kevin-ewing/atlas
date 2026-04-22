@@ -1,0 +1,366 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Atlas - Watch Flip Tracker
+  Serverless application for tracking watch flipping projects.
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.12
+
+Parameters:
+  StageName:
+    Type: String
+    Default: prod
+    Description: Deployment stage name
+
+Resources:
+  # -------------------------------------------------------
+  # DynamoDB Table — Single-table design
+  # -------------------------------------------------------
+  AtlasTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'atlas-table-${StageName}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # -------------------------------------------------------
+  # S3 Bucket — Watch images (browser uploads via pre-signed URLs)
+  # -------------------------------------------------------
+  ImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'atlas-images-${AWS::AccountId}-${StageName}'
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - PUT
+              - GET
+              - HEAD
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3600
+
+  # -------------------------------------------------------
+  # S3 Bucket — Static web assets with website hosting
+  # -------------------------------------------------------
+  WebAssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'atlas-web-${AWS::AccountId}-${StageName}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # -------------------------------------------------------
+  # CloudFront Origin Access Identity for web assets bucket
+  # -------------------------------------------------------
+  WebAssetsOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub 'OAI for Atlas web assets (${StageName})'
+
+  WebAssetsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebAssetsBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt WebAssetsOAI.S3CanonicalUserId
+            Action: s3:GetObject
+            Resource: !Sub '${WebAssetsBucket.Arn}/*'
+
+  # -------------------------------------------------------
+  # CloudFront Distribution — HTTPS delivery of web assets
+  # -------------------------------------------------------
+  WebDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: S3WebOrigin
+            DomainName: !GetAtt WebAssetsBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${WebAssetsOAI}'
+        DefaultCacheBehavior:
+          TargetOriginId: S3WebOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          Compress: true
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  # -------------------------------------------------------
+  # Secrets Manager — Placeholder for auth credentials
+  # -------------------------------------------------------
+  AtlasSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'atlas-secret-${StageName}'
+      Description: >
+        Atlas authentication credentials. After deployment, update this
+        secret with: username, passwordHash (bcrypt), and jwtSigningKey.
+      SecretString: '{"username":"admin","passwordHash":"REPLACE_WITH_BCRYPT_HASH","jwtSigningKey":"REPLACE_WITH_SIGNING_KEY"}'
+
+  # -------------------------------------------------------
+  # Lambda Function — Single function handling all API routes
+  # -------------------------------------------------------
+  AtlasFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'atlas-api-${StageName}'
+      Handler: src.handler.lambda_handler
+      CodeUri: .
+      Description: Atlas API handler for all watch flip tracker endpoints
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref AtlasTable
+          IMAGE_BUCKET_NAME: !Ref ImagesBucket
+          SECRET_NAME: !Ref AtlasSecret
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AtlasTable
+        - Statement:
+            - Sid: DynamoDBGSIReadAccess
+              Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !Sub '${AtlasTable.Arn}/index/GSI1'
+        - S3CrudPolicy:
+            BucketName: !Ref ImagesBucket
+        - Statement:
+            - Sid: SecretsManagerReadAccess
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AtlasSecret
+      Events:
+        # Auth
+        PostAuthLogin:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /auth/login
+            Method: POST
+
+        # Watches
+        GetWatches:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches
+            Method: GET
+        PostWatches:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches
+            Method: POST
+        GetWatch:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}
+            Method: GET
+        PutWatch:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}
+            Method: PUT
+        DeleteWatch:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}
+            Method: DELETE
+
+        # Expenses
+        GetExpenses:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/expenses
+            Method: GET
+        PostExpense:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/expenses
+            Method: POST
+        PutExpense:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/expenses/{expenseId}
+            Method: PUT
+        DeleteExpense:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/expenses/{expenseId}
+            Method: DELETE
+
+        # Sale
+        GetSale:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/sale
+            Method: GET
+        PostSale:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/sale
+            Method: POST
+        PutSale:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/sale
+            Method: PUT
+        DeleteSale:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/sale
+            Method: DELETE
+
+        # Images
+        PostImageUploadUrl:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/images/upload-url
+            Method: POST
+        PostImageConfirm:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/images/{imageId}/confirm
+            Method: POST
+        GetImages:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/images
+            Method: GET
+        DeleteImage:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /watches/{watchId}/images/{imageId}
+            Method: DELETE
+
+        # Portfolio
+        GetPortfolioSummary:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AtlasHttpApi
+            Path: /portfolio/summary
+            Method: GET
+
+  # -------------------------------------------------------
+  # HTTP API Gateway
+  # -------------------------------------------------------
+  AtlasHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref StageName
+      CorsConfiguration:
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowOrigins:
+          - '*'
+
+Outputs:
+  ApiEndpoint:
+    Description: HTTP API Gateway endpoint URL
+    Value: !Sub 'https://${AtlasHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}'
+
+  WebDistributionUrl:
+    Description: CloudFront distribution URL for the web UI
+    Value: !Sub 'https://${WebDistribution.DomainName}'
+
+  WebDistributionId:
+    Description: CloudFront distribution ID (for cache invalidation)
+    Value: !Ref WebDistribution
+
+  ImagesBucketName:
+    Description: S3 bucket name for watch images
+    Value: !Ref ImagesBucket
+
+  WebAssetsBucketName:
+    Description: S3 bucket name for web assets
+    Value: !Ref WebAssetsBucket
+
+  AtlasTableName:
+    Description: DynamoDB table name
+    Value: !Ref AtlasTable
+
+  AtlasSecretArn:
+    Description: Secrets Manager secret ARN
+    Value: !Ref AtlasSecret

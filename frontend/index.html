@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atlas — Watch Flip Tracker</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Login Page -->
+  <section id="page-login" class="page" role="main" aria-label="Login">
+    <div class="login-container">
+      <h1 class="login-title">Atlas</h1>
+      <p class="login-subtitle">Watch Flip Tracker</p>
+      <form id="login-form" class="login-form" novalidate>
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" name="username" required autocomplete="username" aria-required="true">
+          <span class="field-error" id="login-username-error" role="alert"></span>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" required autocomplete="current-password" aria-required="true">
+          <span class="field-error" id="login-password-error" role="alert"></span>
+        </div>
+        <div id="login-error" class="form-error" role="alert" aria-live="polite"></div>
+        <div id="login-lockout" class="lockout-notice" role="alert" aria-live="polite" hidden>
+          <p>Account locked. Try again in <span id="lockout-remaining"></span>.</p>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- App Shell (shown after login) -->
+  <div id="app-shell" class="app-shell" hidden>
+    <header class="app-header" role="banner">
+      <div class="header-inner">
+        <a href="#/dashboard" class="logo" aria-label="Atlas home">Atlas</a>
+        <nav class="main-nav" role="navigation" aria-label="Main navigation">
+          <ul class="nav-list">
+            <li><a href="#/dashboard" class="nav-link" data-route="dashboard">Dashboard</a></li>
+            <li><a href="#/watches/new" class="nav-link" data-route="watches-new">Add Watch</a></li>
+            <li><a href="#/portfolio" class="nav-link" data-route="portfolio">Portfolio</a></li>
+          </ul>
+        </nav>
+        <button id="btn-logout" class="btn btn-text" type="button" aria-label="Sign out">Sign Out</button>
+      </div>
+    </header>
+
+    <main id="app-content" class="app-content" role="main" aria-live="polite">
+      <!-- Dashboard View -->
+      <section id="view-dashboard" class="view" hidden>
+        <div class="view-header">
+          <h2>My Watches</h2>
+          <a href="#/watches/new" class="btn btn-primary btn-sm">+ Add Watch</a>
+        </div>
+        <div id="watch-list" class="watch-grid" role="list" aria-label="Watch collection"></div>
+        <p id="watch-list-empty" class="empty-state" hidden>No watches yet. Add your first watch to get started.</p>
+      </section>
+
+      <!-- Watch Form View (Add / Edit) -->
+      <section id="view-watch-form" class="view" hidden>
+        <div class="view-header">
+          <h2 id="watch-form-title">Add Watch</h2>
+        </div>
+        <div id="watch-form-container"></div>
+      </section>
+
+      <!-- Portfolio Summary View -->
+      <section id="view-portfolio" class="view" hidden>
+        <div class="view-header">
+          <h2>Portfolio Summary</h2>
+        </div>
+        <div id="portfolio-container"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay" hidden aria-hidden="true">
+    <div class="spinner" role="status"><span class="sr-only">Loading…</span></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/image-upload.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/watch-form.js"></script>
+  <script src="js/portfolio.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

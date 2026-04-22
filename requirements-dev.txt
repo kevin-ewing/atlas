@@ -1,0 +1,5 @@
+pytest
+pytest-mock
+hypothesis
+moto[dynamodb,s3,secretsmanager]
+pytest-cov
