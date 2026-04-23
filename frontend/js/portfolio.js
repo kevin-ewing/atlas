@@ -10,9 +10,24 @@ var Portfolio = (function () {
   var CONDITIONS = ['new', 'excellent', 'good', 'fair', 'poor'];
   var STATUSES = ['in_collection', 'for_sale', 'sold'];
   var FEATURES = [
-    'chronograph', 'date', 'GMT', 'moon phase', 'tourbillon',
-    'minute repeater', 'perpetual calendar', 'diving bezel',
-    'power reserve indicator', 'alarm'
+    'chronograph', 'date', 'day-date', 'GMT', 'moon phase', 'tourbillon',
+    'minute repeater', 'perpetual calendar', 'annual calendar', 'diving bezel',
+    'power reserve indicator', 'alarm', 'world timer', 'flyback chronograph',
+    'split-seconds chronograph', 'regulator dial', 'skeleton dial',
+    'small seconds', 'jumping hour', 'retrograde display',
+    'equation of time', 'sunrise/sunset indicator', 'tide indicator',
+    'dual time zone', 'big date', 'digital display',
+    'tachymeter', 'telemeter', 'pulsometer',
+    'luminous hands', 'luminous indices', 'super-luminova',
+    'sapphire caseback', 'screw-down crown', 'helium escape valve',
+    'rotating bezel', 'slide rule bezel', 'countdown bezel',
+    'water resistant 100m+', 'water resistant 200m+', 'water resistant 300m+',
+    'shock resistant', 'anti-magnetic',
+    'COSC certified', 'METAS certified', 'Geneva seal',
+    'hacking seconds', 'hand-wind capability', 'quick-set date',
+    'micro-rotor', 'column wheel', 'vertical clutch',
+    'enamel dial', 'guilloché dial', 'meteorite dial',
+    'gem-set bezel', 'gem-set dial'
   ];
   var SORT_FIELDS = [
     { value: 'pnl', label: 'Profit / Loss' },
@@ -62,7 +77,7 @@ var Portfolio = (function () {
 
     html += '<div class="stat-card">';
     html += '<div class="stat-value pnl-profit">' + profitable + '</div>';
-    html += '<div class="stat-label">Profitable</div>';
+    html += '<div class="stat-label">Profit</div>';
     html += '</div>';
 
     html += '<div class="stat-card">';

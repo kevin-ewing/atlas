@@ -24,6 +24,9 @@ var Auth = (function () {
     clearFieldErrors();
     setFormError('');
     hideLockout();
+    // Re-enable submit button (may still be disabled from a previous login attempt)
+    var submitBtn = document.querySelector('#login-form button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = false;
   }
 
   function clearFieldErrors() {

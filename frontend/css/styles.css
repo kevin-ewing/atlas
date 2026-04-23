@@ -292,8 +292,8 @@ legend {
   max-width: 380px;
   margin: 4rem auto;
   padding: 3rem 1.25rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(252, 203, 203, 0.14));
-  border: 1px solid rgba(79, 121, 105, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(120, 179, 214, 0.1));
+  border: 1px solid rgba(120, 179, 214, 0.2);
   border-radius: 24px;
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(10px);
@@ -305,7 +305,7 @@ legend {
   margin-bottom: 2rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-primary);
+  color: var(--color-accent);
 }
 
 .lockout-notice {
@@ -326,8 +326,8 @@ legend {
 }
 
 .app-header {
-  background: rgba(222, 227, 226, 0.88);
-  border-bottom: 1px solid rgba(79, 121, 105, 0.18);
+  background: linear-gradient(135deg, rgba(222, 227, 226, 0.92), rgba(120, 179, 214, 0.18));
+  border-bottom: 1px solid rgba(120, 179, 214, 0.28);
   backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
@@ -346,7 +346,7 @@ legend {
 .logo {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-accent);
   text-decoration: none;
   flex-shrink: 0;
   letter-spacing: 0.08em;
@@ -380,7 +380,7 @@ legend {
 .nav-link:hover,
 .nav-link.active {
   color: #fff;
-  background: var(--color-primary);
+  background: var(--color-accent);
   text-decoration: none;
 }
 
@@ -427,7 +427,7 @@ legend {
 }
 
 .watch-card:hover {
-  box-shadow: 0 6px 18px rgba(79, 121, 105, 0.08);
+  box-shadow: 0 6px 18px rgba(120, 179, 214, 0.14);
   transform: translateY(-1px);
 }
 
@@ -474,7 +474,7 @@ legend {
 
 .watch-card-maker {
   font-size: 0.8125rem;
-  color: var(--color-primary);
+  color: var(--color-accent);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -529,7 +529,7 @@ legend {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-primary);
+  color: var(--color-accent);
   margin-bottom: 0.85rem;
 }
 
@@ -565,7 +565,7 @@ legend {
 
 .expense-table th {
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-accent);
   font-size: 0.8125rem;
 }
 
@@ -637,11 +637,11 @@ legend {
 
 .stat-card {
   background: #fbfcfb;
-  border: 1px solid rgba(79, 121, 105, 0.08);
+  border: 1px solid rgba(120, 179, 214, 0.22);
   border-radius: 12px;
   padding: 1.25rem;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(79, 121, 105, 0.04);
+  box-shadow: 0 2px 8px rgba(120, 179, 214, 0.08);
 }
 
 .stat-value {
@@ -804,7 +804,7 @@ legend {
 
 .progress-bar-fill {
   height: 100%;
-  background: var(--color-primary);
+  background: var(--color-accent);
   transition: width 0.3s ease;
   width: 0%;
 }
@@ -830,7 +830,7 @@ legend {
   width: 32px;
   height: 32px;
   border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }

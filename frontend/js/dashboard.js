@@ -7,6 +7,7 @@ var Dashboard = (function () {
   'use strict';
 
   var _watches = [];
+  var _detailCache = {}; // Cache for lazy-loaded watch details keyed by watchId
 
   function load() {
     var listEl = document.getElementById('watch-list');
@@ -14,6 +15,7 @@ var Dashboard = (function () {
     if (!listEl) return;
 
     listEl.innerHTML = '';
+    _detailCache = {};
     if (emptyEl) emptyEl.hidden = true;
     App.showLoading();
 
@@ -21,6 +23,8 @@ var Dashboard = (function () {
       .then(function (data) {
         _watches = data.watches || data || [];
         render();
+        // Lazy-load detail data for all watches in the background
+        prefetchDetails();
       })
       .catch(function () {
         listEl.innerHTML = '<p class="empty-state">Failed to load watches.</p>';
@@ -28,6 +32,28 @@ var Dashboard = (function () {
       .finally(function () {
         App.hideLoading();
       });
+  }
+
+  /** Prefetch detail data for every watch so expanding is instant. */
+  function prefetchDetails() {
+    _watches.forEach(function (watch) {
+      if (_detailCache[watch.watchId]) return;
+      Promise.all([
+        Api.get('/watches/' + watch.watchId),
+        Api.get('/watches/' + watch.watchId + '/expenses').catch(function () { return { expenses: [] }; }),
+        Api.get('/watches/' + watch.watchId + '/sale').catch(function () { return null; }),
+        Api.get('/watches/' + watch.watchId + '/images').catch(function () { return { images: [] }; })
+      ]).then(function (results) {
+        _detailCache[watch.watchId] = {
+          fullWatch: results[0],
+          expenses: results[1].expenses || results[1] || [],
+          sale: (results[2] && !results[2].error) ? results[2] : null,
+          images: results[3].images || results[3] || []
+        };
+      }).catch(function () {
+        // Silently ignore — will fetch on demand when expanded
+      });
+    });
   }
 
   function render() {
@@ -69,7 +95,7 @@ var Dashboard = (function () {
     if (watch.thumbnailUrl) {
       thumbHtml = '<img class="watch-thumb" src="' + Utils.escapeHtml(watch.thumbnailUrl) + '" alt="' + Utils.escapeHtml(watch.maker + ' ' + watch.model) + '">';
     } else {
-      thumbHtml = '<div class="watch-thumb-placeholder" aria-hidden="true">⌚</div>';
+      thumbHtml = '<div class="watch-thumb-placeholder" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><polyline points="12 9 12 12 14 13"/><path d="M9 2h6"/><path d="M9 22h6"/><path d="M16.5 3.5l1 1"/><path d="M7.5 3.5l-1 1"/></svg></div>';
     }
 
     // P&L
@@ -124,6 +150,13 @@ var Dashboard = (function () {
     var detail = card.querySelector('.watch-card-detail');
     if (!detail) return;
 
+    // Use cached data if available (from background prefetch)
+    var cached = _detailCache[watch.watchId];
+    if (cached) {
+      renderDetail(detail, cached.fullWatch, cached.expenses, cached.sale, cached.images, watch.watchId);
+      return;
+    }
+
     detail.innerHTML = '<p class="empty-state">Loading…</p>';
 
     // Fetch full watch data, expenses, sale, and images in parallel
@@ -141,6 +174,14 @@ var Dashboard = (function () {
       var expenses = expensesData.expenses || expensesData || [];
       var sale = saleData && saleData.error ? null : saleData;
       var images = imagesData.images || imagesData || [];
+
+      // Cache for future use
+      _detailCache[watch.watchId] = {
+        fullWatch: fullWatch,
+        expenses: expenses,
+        sale: sale,
+        images: images
+      };
 
       renderDetail(detail, fullWatch, expenses, sale, images, watch.watchId);
     }).catch(function () {
@@ -179,10 +220,10 @@ var Dashboard = (function () {
     }
     html += '</div></div>';
 
-    // Expenses section
-    html += '<div class="detail-section">';
-    html += '<div class="detail-section-title">Expenses</div>';
+    // Expenses section — only if there are expenses
     if (expenses.length > 0) {
+      html += '<div class="detail-section">';
+      html += '<div class="detail-section-title">Expenses</div>';
       html += '<table class="expense-table"><thead><tr>';
       html += '<th>Category</th><th>Description</th><th>Date</th><th>Amount</th>';
       html += '</tr></thead><tbody>';
@@ -200,15 +241,13 @@ var Dashboard = (function () {
       html += '<td colspan="3"><strong>Total</strong></td>';
       html += '<td><strong>' + Utils.formatCurrency(totalExpenseCents) + '</strong></td>';
       html += '</tr></tfoot></table>';
-    } else {
-      html += '<p style="font-size:0.875rem;color:var(--color-text-muted)">No expenses recorded.</p>';
+      html += '</div>';
     }
-    html += '</div>';
 
-    // Sale section
-    html += '<div class="detail-section sale-detail">';
-    html += '<div class="detail-section-title">Sale</div>';
+    // Sale section — only if there is a sale
     if (sale && sale.salePriceCents != null) {
+      html += '<div class="detail-section sale-detail">';
+      html += '<div class="detail-section-title">Sale</div>';
       html += '<div class="detail-grid">';
       html += detailRow('Sale Price', Utils.formatCurrency(sale.salePriceCents));
       html += detailRow('Sale Date', Utils.formatDate(sale.saleDate));
@@ -217,25 +256,21 @@ var Dashboard = (function () {
         html += detailRow('Notes', sale.notes);
       }
       html += '</div>';
-    } else {
-      html += '<p style="font-size:0.875rem;color:var(--color-text-muted)">Not sold yet.</p>';
+      html += '</div>';
     }
-    html += '</div>';
 
-    // Images section
-    html += '<div class="detail-section">';
-    html += '<div class="detail-section-title">Images</div>';
+    // Images section — only if there are images
     if (images.length > 0) {
+      html += '<div class="detail-section">';
+      html += '<div class="detail-section-title">Images</div>';
       html += '<div class="image-gallery">';
       images.forEach(function (img) {
         var url = img.url || img.s3Url || '';
         html += '<img src="' + Utils.escapeHtml(url) + '" alt="Watch image" loading="lazy">';
       });
       html += '</div>';
-    } else {
-      html += '<p style="font-size:0.875rem;color:var(--color-text-muted)">No images uploaded.</p>';
+      html += '</div>';
     }
-    html += '</div>';
 
     // Actions
     html += '<div class="watch-card-actions">';
