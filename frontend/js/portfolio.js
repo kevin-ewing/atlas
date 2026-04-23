@@ -306,7 +306,7 @@ var Portfolio = (function () {
       var status = w.status || 'in_collection';
       var pnlCents = w.pnlCents || 0;
       var pnlHtml = '';
-      if (status === 'for_sale' || status === 'sold') {
+      if (status === 'sold') {
         var pnlClass = Utils.pnlClass(pnlCents);
         pnlHtml = '<td class="' + pnlClass + '">' + Utils.formatPnl(pnlCents) + '</td>';
       } else {

@@ -109,10 +109,10 @@ var Dashboard = (function () {
       thumbHtml = '<div class="watch-thumb-placeholder" aria-hidden="true" style="background:' + bgColor + '"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><polyline points="12 9 12 12 14 13"/><path d="M9 2h6"/><path d="M9 22h6"/><path d="M16.5 3.5l1 1"/><path d="M7.5 3.5l-1 1"/></svg></div>';
     }
 
-    // P&L — only show dollar amount for for_sale or sold watches
+    // P&L — only show dollar amount for sold watches; show status label otherwise
     var pnlHtml = '';
     var status = watch.status || 'in_collection';
-    if (status === 'for_sale' || status === 'sold') {
+    if (status === 'sold') {
       var pnlCents = watch.pnlCents || 0;
       var pnlClass = Utils.pnlClass(pnlCents);
       var pnlText = Utils.formatPnl(pnlCents);

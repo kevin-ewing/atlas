@@ -293,11 +293,10 @@ legend {
   max-width: 380px;
   margin: 4rem auto;
   padding: 3rem 1.25rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(120, 179, 214, 0.1));
-  border: 1px solid rgba(120, 179, 214, 0.2);
-  border-radius: 24px;
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(10px);
+  background: #fbfcfb;
+  border: 1px solid rgba(120, 179, 214, 0.22);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(120, 179, 214, 0.08);
 }
 
 .login-title {
@@ -500,6 +499,10 @@ legend {
   color: var(--color-text-muted);
   transition: transform var(--transition);
   flex-shrink: 0;
+}
+
+.watch-card.expanded {
+  grid-column: 1 / -1;
 }
 
 .watch-card.expanded .watch-card-expand-icon {

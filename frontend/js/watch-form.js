@@ -165,13 +165,15 @@ var WatchForm = (function () {
     html += '</fieldset>';
 
     // ---- Images Section ----
+    html += '<hr class="section-divider">';
+    html += '<fieldset><legend class="detail-section-title">Images</legend>';
     if (_watchId) {
-      html += '<hr class="section-divider">';
-      html += '<fieldset><legend class="detail-section-title">Images</legend>';
       html += '<div id="existing-images" class="upload-preview-list"></div>';
       html += '<div id="image-upload-container"></div>';
-      html += '</fieldset>';
+    } else {
+      html += '<p style="font-size:0.875rem;color:var(--color-text-muted)">Save the watch first to upload images.</p>';
     }
+    html += '</fieldset>';
 
     // ---- Form Error & Actions ----
     html += '<div id="watch-form-error" class="form-error" role="alert"></div>';
@@ -440,8 +442,14 @@ var WatchForm = (function () {
           .then(function () { return syncSale(wId, saleData); })
           .then(function () { return wId; });
       })
-      .then(function () {
-        App.navigateTo('/dashboard');
+      .then(function (wId) {
+        if (_watchId) {
+          // Editing — go back to dashboard
+          App.navigateTo('/dashboard');
+        } else {
+          // Creating — redirect to edit so user can upload images
+          App.navigateTo('/watches/' + wId + '/edit');
+        }
       })
       .catch(function (err) {
         var msg = 'Failed to save watch.';
