@@ -54,6 +54,7 @@ atlas/
 ├── scripts/
 │   └── setup-secrets.sh            # Secrets Manager provisioning
 ├── template.yaml                   # AWS SAM infrastructure template
+├── Makefile                        # Dev and deploy commands (make help)
 ├── requirements.txt                # Runtime dependencies
 └── requirements-dev.txt            # Dev/test dependencies
 ```
@@ -62,7 +63,7 @@ atlas/
 
 ## Running Locally
 
-This section covers how to run Atlas on your machine for development and testing. No AWS account is needed for local development — all AWS services are mocked in tests, and SAM CLI can emulate the API locally.
+All common tasks are available through `make`. Run `make help` to see everything.
 
 ### Prerequisites
 
@@ -71,74 +72,57 @@ This section covers how to run Atlas on your machine for development and testing
 | Python | 3.12+ | `brew install python@3.12` or [python.org](https://www.python.org/downloads/) |
 | AWS SAM CLI | Latest | `brew install aws-sam-cli` or [install guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) |
 | Docker | Latest | Required by `sam local`. [Get Docker](https://docs.docker.com/get-docker/) |
-| AWS CLI v2 | Latest | `brew install awscli` (only needed for deployment, not local dev) |
+| AWS CLI v2 | Latest | `brew install awscli` (only needed for deployment) |
 
-### 1. Set up the Python environment
+### Quick start
 
 ```bash
-# Clone the repo
 git clone <repo-url>
 cd atlas
 
-# Create and activate a virtual environment
 python3.12 -m venv .venv
 source .venv/bin/activate
 
-# Install all dependencies
-pip install -r requirements.txt -r requirements-dev.txt
+make install    # Install all dependencies
+make test       # Run unit + integration tests (fast, no AWS needed)
+make dev        # Start frontend (:8080) + backend (:3000)
 ```
 
-### 2. Run the test suite
+That's it. Open http://localhost:8080 in your browser.
 
-All tests use moto to mock AWS services — no real AWS credentials needed.
+To connect the frontend to the local API, uncomment the `ATLAS_API_URL` line in `frontend/index.html`, or set it in the browser console:
+
+```javascript
+window.ATLAS_API_URL = "http://127.0.0.1:3000";
+```
+
+> The local backend (`sam local start-api`) uses Docker to emulate Lambda and needs real AWS credentials to reach DynamoDB, S3, and Secrets Manager. Make sure `aws configure` is set up and you've run `make secrets` at least once.
+
+### Available make targets
+
+| Command | What it does |
+|---|---|
+| `make install` | Install all Python dependencies |
+| `make test` | Run unit + integration tests (fast) |
+| `make test-all` | Run full suite including property-based tests |
+| `make coverage` | Run tests with HTML coverage report |
+| `make dev` | Start frontend + backend together |
+| `make frontend` | Start only the frontend on port 8080 |
+| `make backend` | Build SAM and start the local API on port 3000 |
+| `make build` | Build the SAM application |
+| `make clean` | Remove build artifacts and caches |
+
+### Customizing ports
 
 ```bash
-# Run everything (248 tests)
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run specific test categories
-pytest tests/unit/ -v              # 170 unit tests
-pytest tests/property/ -v          # 52 property-based tests (Hypothesis)
-pytest tests/integration/ -v       # 26 end-to-end tests
-
-# Run with coverage report
-pytest --cov=src --cov-report=html
-open htmlcov/index.html
+make dev FRONTEND_PORT=9090 API_PORT=4000
 ```
 
-### 3. Run the API locally with SAM CLI
+### Running against deployed AWS resources
 
-SAM CLI can emulate the API Gateway + Lambda locally using Docker. This gives you a real HTTP server you can hit with curl or the frontend.
+If you've already deployed the stack and want the local API to use those resources:
 
-```bash
-# Build the SAM application
-sam build
-
-# Start the local API (runs on http://127.0.0.1:3000)
-sam local start-api
-```
-
-The local API needs real AWS credentials to access DynamoDB, S3, and Secrets Manager in your AWS account. If you want to test against real AWS services:
-
-```bash
-# Make sure your AWS CLI is configured
-aws configure
-
-# Provision the secret (one-time setup)
-chmod +x scripts/setup-secrets.sh
-./scripts/setup-secrets.sh
-
-# Deploy just the DynamoDB table and S3 buckets first (or use the full deploy)
-sam build && sam deploy --guided
-
-# Then start the local API (it uses the deployed DynamoDB/S3/Secrets Manager)
-sam local start-api --env-vars env.json
-```
-
-Create an `env.json` file to point the local Lambda at your deployed resources:
+Create an `env.json` file:
 
 ```json
 {
@@ -150,49 +134,22 @@ Create an `env.json` file to point the local Lambda at your deployed resources:
 }
 ```
 
-Replace the values with the actual resource names from your deployment (see `sam deploy` outputs or check CloudFormation).
-
-### 4. Serve the frontend locally
-
-The frontend is plain HTML/CSS/JS with no build step. Serve it with any static file server:
+Then start the backend with:
 
 ```bash
-# Option A: Python's built-in server
-python -m http.server 8080 --directory frontend
-
-# Option B: npx (if you have Node.js)
-npx serve frontend -l 8080
+sam build && sam local start-api --env-vars env.json
 ```
 
-Then open http://localhost:8080 in your browser.
-
-To connect the frontend to the local SAM API, add this line to `frontend/index.html` before the other `<script>` tags:
-
-```html
-<script>window.ATLAS_API_URL = "http://127.0.0.1:3000";</script>
-```
-
-Or set it in the browser console:
-
-```javascript
-window.ATLAS_API_URL = "http://127.0.0.1:3000";
-```
-
-### 5. Local development workflow
-
-A typical development loop looks like:
+### Development workflow
 
 1. Edit source code in `src/`
-2. Run relevant tests: `pytest tests/unit/test_watch_service.py -v`
-3. If testing the full API: `sam build && sam local start-api`
-4. If testing the frontend: serve `frontend/` and point it at the local API
-5. Run the full suite before committing: `pytest`
+2. Run relevant tests: `make test` (or `pytest tests/unit/test_watch_service.py -v`)
+3. Test the full app: `make dev`
+4. Run the full suite before committing: `make test-all`
 
 ---
 
 ## Production Deployment
-
-This section is a complete, step-by-step guide to deploying Atlas to a fresh AWS account. By the end, you'll have a live application accessible via HTTPS.
 
 ### Prerequisites
 
@@ -213,86 +170,30 @@ python3 --version      # Python 3.12.x
 docker --version       # Docker version 2x.x.x
 ```
 
-### Step 1: Configure AWS credentials
+### First-time deploy
 
 ```bash
+# 1. Configure AWS credentials
 aws configure
+
+# 2. Install dependencies (if you haven't already)
+make install
+
+# 3. Run tests to verify everything works
+make test
+
+# 4. Provision the auth secret (interactive — prompts for username/password)
+make secrets
+
+# 5. First deploy (interactive — prompts for stack config, saves to samconfig.toml)
+make deploy-first
+
+# 6. Set the API URL in frontend/index.html (see output from step 5)
+#    Uncomment and update the ATLAS_API_URL line, then:
+make upload
 ```
 
-Enter your Access Key ID, Secret Access Key, default region (e.g. `us-east-1`), and output format (`json`). The region you choose here is where all Atlas resources will be created.
-
-To verify:
-
-```bash
-aws sts get-caller-identity
-```
-
-You should see your account ID and IAM user/role ARN.
-
-### Step 2: Clone and install dependencies
-
-```bash
-git clone <repo-url>
-cd atlas
-
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-```
-
-### Step 3: Run tests to verify everything works
-
-```bash
-pytest
-```
-
-All 248 tests should pass. This confirms the code is correct before deploying.
-
-### Step 4: Provision the authentication secret
-
-The setup script creates a Secrets Manager secret with your login credentials:
-
-```bash
-chmod +x scripts/setup-secrets.sh
-./scripts/setup-secrets.sh
-```
-
-You'll be prompted for:
-
-| Prompt | Default | What it does |
-|---|---|---|
-| Username | `admin` | Your login username |
-| Password | (none) | Your login password — bcrypt-hashed with cost factor 12 |
-| AWS region | `us-east-1` | Must match your deployment region |
-| Stage name | `prod` | Must match the `StageName` parameter in SAM deploy |
-
-The script generates a random 32-byte JWT signing key automatically.
-
-**Important:** The region and stage name you enter here must match what you use in `sam deploy`. If you deploy to `us-west-2` with stage `prod`, run the script with those same values.
-
-### Step 5: Build the SAM application
-
-```bash
-sam build
-```
-
-This packages the Lambda function code and dependencies into `.aws-sam/build/`. It uses Docker to build in a Lambda-compatible environment.
-
-If the build succeeds, you'll see:
-
-```
-Build Succeeded
-```
-
-### Step 6: Deploy to AWS
-
-For the first deployment, use `--guided` to walk through the configuration:
-
-```bash
-sam deploy --guided
-```
-
-Answer the prompts:
+During `make deploy-first`, use these recommended values:
 
 | Prompt | Recommended value |
 |---|---|
@@ -303,121 +204,51 @@ Answer the prompts:
 | Allow SAM CLI IAM role creation | `y` |
 | Disable rollback | `n` |
 | Save arguments to configuration file | `y` |
-| SAM configuration file | `samconfig.toml` |
-| SAM configuration environment | `default` |
-
-SAM will show you a changeset of all resources to be created. Type `y` to confirm.
-
-This creates:
-- 1 DynamoDB table
-- 2 S3 buckets (images + web assets)
-- 1 CloudFront distribution
-- 1 Lambda function
-- 1 HTTP API Gateway with 19 routes
-- 1 Secrets Manager secret (placeholder — your real secret was created in Step 4)
-- IAM roles with least-privilege permissions
 
 Deployment takes 3-5 minutes. CloudFront distribution creation can take up to 15 minutes on the first deploy.
 
-### Step 7: Note the stack outputs
-
-After deployment, SAM prints the stack outputs. Save these — you'll need them:
+### Subsequent deploys
 
 ```bash
-# Or retrieve them anytime with:
-aws cloudformation describe-stacks --stack-name atlas --query 'Stacks[0].Outputs' --output table
+make deploy             # Backend changes (build + deploy)
+make upload             # Frontend-only changes (S3 sync + CloudFront invalidation)
 ```
 
-| Output | Example | Purpose |
-|---|---|---|
-| `ApiEndpoint` | `https://abc123.execute-api.us-east-1.amazonaws.com/prod` | API URL for the frontend |
-| `WebDistributionUrl` | `https://d1234abcdef.cloudfront.net` | Your app's public URL |
-| `WebDistributionId` | `E1234ABCDEF` | For cache invalidation |
-| `WebAssetsBucketName` | `atlas-web-123456789012-prod` | Where frontend files go |
-| `ImagesBucketName` | `atlas-images-123456789012-prod` | Where watch images are stored |
-| `AtlasTableName` | `atlas-table-prod` | DynamoDB table name |
-| `AtlasSecretArn` | `arn:aws:secretsmanager:...` | Secret ARN |
+### Useful deployment commands
 
-### Step 8: Configure and upload the frontend
+| Command | What it does |
+|---|---|
+| `make deploy` | Build and deploy backend to AWS |
+| `make deploy-first` | First-time guided deploy (interactive) |
+| `make upload` | Upload frontend to S3 + invalidate CloudFront |
+| `make secrets` | Create or update the auth secret |
+| `make outputs` | Show deployed stack outputs (API URL, buckets, etc.) |
 
-First, inject the API URL into the frontend:
+### Stack outputs
+
+After deploying, view your resource info anytime:
 
 ```bash
-# Get the API endpoint
-API_URL=$(aws cloudformation describe-stacks \
-  --stack-name atlas \
-  --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint`].OutputValue' \
-  --output text)
-
-echo "API URL: $API_URL"
+make outputs
 ```
 
-Create a config file that the frontend will load. Add this line to `frontend/index.html`, right before the `<script src="js/utils.js">` tag:
-
-```html
-<script>window.ATLAS_API_URL = "https://abc123.execute-api.us-east-1.amazonaws.com/prod";</script>
-```
-
-Replace the URL with your actual `ApiEndpoint` value.
-
-Then upload the frontend to S3:
-
-```bash
-# Get the web assets bucket name
-WEB_BUCKET=$(aws cloudformation describe-stacks \
-  --stack-name atlas \
-  --query 'Stacks[0].Outputs[?OutputKey==`WebAssetsBucketName`].OutputValue' \
-  --output text)
-
-# Upload all frontend files
-aws s3 sync frontend/ s3://$WEB_BUCKET/ --delete
-
-# Invalidate CloudFront cache so changes appear immediately
-DIST_ID=$(aws cloudformation describe-stacks \
-  --stack-name atlas \
-  --query 'Stacks[0].Outputs[?OutputKey==`WebDistributionId`].OutputValue' \
-  --output text)
-
-aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
-```
-
-### Step 9: Access your application
-
-```bash
-# Get the CloudFront URL
-aws cloudformation describe-stacks \
-  --stack-name atlas \
-  --query 'Stacks[0].Outputs[?OutputKey==`WebDistributionUrl`].OutputValue' \
-  --output text
-```
-
-Open the URL in your browser. Log in with the username and password you set in Step 4.
-
-### Subsequent deployments
-
-After the first deploy, updates are simpler:
-
-```bash
-# Code changes
-sam build && sam deploy
-
-# Frontend-only changes
-WEB_BUCKET=$(aws cloudformation describe-stacks --stack-name atlas --query 'Stacks[0].Outputs[?OutputKey==`WebAssetsBucketName`].OutputValue' --output text)
-aws s3 sync frontend/ s3://$WEB_BUCKET/ --delete
-
-DIST_ID=$(aws cloudformation describe-stacks --stack-name atlas --query 'Stacks[0].Outputs[?OutputKey==`WebDistributionId`].OutputValue' --output text)
-aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
-```
+| Output | Purpose |
+|---|---|
+| `ApiEndpoint` | API URL — set this in `frontend/index.html` |
+| `WebDistributionUrl` | Your app's public HTTPS URL |
+| `WebDistributionId` | For cache invalidation |
+| `WebAssetsBucketName` | Where frontend files are hosted |
+| `ImagesBucketName` | Where watch images are stored |
+| `AtlasTableName` | DynamoDB table name |
+| `AtlasSecretArn` | Secret ARN |
 
 ### Changing your password
 
-Re-run the setup script. It detects the existing secret and updates it:
-
 ```bash
-./scripts/setup-secrets.sh
+make secrets
 ```
 
-The change takes effect immediately — no redeployment needed. The Lambda function picks up the new secret on its next cold start (or within a few minutes as the cached secret expires).
+The change takes effect immediately — no redeployment needed.
 
 ### Hosting under a subpath on an existing domain (`yourdomain.com/atlas`)
 
