@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 VALID_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_IMAGES_PER_WATCH = 10
-MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 PRESIGNED_URL_EXPIRY = 300  # 5 minutes
 
 # Map content type to file extension

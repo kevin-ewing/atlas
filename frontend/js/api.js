@@ -22,12 +22,13 @@
 var Api = (function () {
   'use strict';
 
-  var _token = null; // JWT stored in memory only
+  var _token = null; // JWT stored in memory and sessionStorage
 
   var BASE_URL = window.ATLAS_API_URL || '';
 
   function setToken(token) {
     _token = token;
+    try { sessionStorage.setItem('atlas_token', token); } catch (e) { /* ignore */ }
   }
 
   function getToken() {
@@ -36,10 +37,20 @@ var Api = (function () {
 
   function clearToken() {
     _token = null;
+    try { sessionStorage.removeItem('atlas_token'); } catch (e) { /* ignore */ }
   }
 
   function isAuthenticated() {
-    return _token !== null;
+    if (_token) return true;
+    // Restore from sessionStorage on page refresh
+    try {
+      var stored = sessionStorage.getItem('atlas_token');
+      if (stored) {
+        _token = stored;
+        return true;
+      }
+    } catch (e) { /* ignore */ }
+    return false;
   }
 
   /**

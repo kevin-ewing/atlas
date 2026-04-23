@@ -240,6 +240,7 @@ a:hover {
   font-size: 0.875rem;
   margin-bottom: 0.75rem;
   text-align: center;
+  white-space: pre-line;
 }
 
 .form-row {
@@ -726,6 +727,20 @@ legend {
 .inline-expense-item .btn {
   margin-top: 1.4rem;
   flex-shrink: 0;
+}
+
+.inline-expense-item .exp-remove {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.4rem;
+  font-size: 0.8125rem;
+  line-height: 1;
 }
 
 /* ===== Image Upload ===== */

@@ -121,6 +121,7 @@ var WatchForm = (function () {
     html += '</div>';
 
     html += '<div class="form-row">';
+    html += numberField('purchasePriceCents', 'Purchase Price ($)', data.purchasePriceCents != null ? (data.purchasePriceCents / 100).toFixed(2) : '');
     html += selectField('status', 'Status', STATUSES, data.status || 'in_collection');
     html += '</div>';
 
@@ -418,7 +419,18 @@ var WatchForm = (function () {
         App.navigateTo('/dashboard');
       })
       .catch(function (err) {
-        var msg = (err.data && err.data.error && err.data.error.message) || 'Failed to save watch.';
+        var msg = 'Failed to save watch.';
+        if (err.data && err.data.error) {
+          msg = err.data.error.message || msg;
+          // Show detailed validation errors if available
+          if (err.data.error.details && err.data.error.details.errors) {
+            var details = err.data.error.details.errors;
+            if (Array.isArray(details) && details.length > 0) {
+              msg = details.join('\n• ');
+              msg = '• ' + msg;
+            }
+          }
+        }
         setFormError(msg);
       })
       .finally(function () {
@@ -442,6 +454,9 @@ var WatchForm = (function () {
 
     var diamEl = form.querySelector('[name="caseDiameterMm"]');
     if (diamEl && diamEl.value) data.caseDiameterMm = parseFloat(diamEl.value);
+
+    var priceEl = form.querySelector('[name="purchasePriceCents"]');
+    if (priceEl && priceEl.value) data.purchasePriceCents = Math.round(parseFloat(priceEl.value) * 100);
 
     // Select fields
     var selects = ['movementType', 'condition', 'status'];

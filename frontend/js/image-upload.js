@@ -1,15 +1,19 @@
 /**
  * ImageUpload module — handles image upload flow via pre-signed S3 URLs.
- * Validates file type (JPEG, PNG, WebP) and size (10 MB) client-side.
+ * Validates file type (JPEG, PNG, WebP) client-side.
+ * Compresses images client-side before upload for space savings.
  * Shows upload progress and thumbnail previews.
  */
 var ImageUpload = (function () {
   'use strict';
 
-  var MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
   var MAX_IMAGES = 10;
   var ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   var ACCEPTED_EXTENSIONS = '.jpg,.jpeg,.png,.webp';
+
+  // Compression settings
+  var MAX_DIMENSION = 2048; // Max width or height after resize
+  var JPEG_QUALITY = 0.82;  // JPEG output quality (0–1)
 
   var _watchId = null;
   var _currentCount = 0;
@@ -40,7 +44,7 @@ var ImageUpload = (function () {
     var html = '';
     html += '<div class="image-upload-area" id="upload-drop-zone" role="button" tabindex="0" aria-label="Upload images">';
     html += '<p>Click or drag images here to upload</p>';
-    html += '<p style="font-size:0.75rem;margin-top:0.25rem">JPEG, PNG, or WebP — max 10 MB each</p>';
+    html += '<p style="font-size:0.75rem;margin-top:0.25rem">JPEG, PNG, or WebP — any size (auto-compressed)</p>';
     html += '<input type="file" id="upload-file-input" accept="' + ACCEPTED_EXTENSIONS + '" multiple hidden aria-hidden="true">';
     html += '</div>';
     html += '<div id="upload-queue" class="upload-preview-list"></div>';
@@ -113,16 +117,15 @@ var ImageUpload = (function () {
       return;
     }
 
-    // Validate size
-    if (file.size > MAX_FILE_SIZE) {
-      alert('"' + file.name + '" exceeds the 10 MB size limit.');
-      return;
-    }
-
-    uploadFile(file);
+    // No size limit — we compress client-side before upload
+    compressAndUpload(file);
   }
 
-  function uploadFile(file) {
+  /**
+   * Compress an image file using a canvas, then upload the result.
+   * Resizes to fit within MAX_DIMENSION and outputs as JPEG.
+   */
+  function compressAndUpload(file) {
     var queueEl = document.getElementById('upload-queue');
     if (!queueEl) return;
 
@@ -132,14 +135,6 @@ var ImageUpload = (function () {
 
     var previewImg = document.createElement('img');
     previewImg.alt = 'Uploading ' + file.name;
-
-    // Show local preview
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      previewImg.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-
     item.appendChild(previewImg);
 
     // Progress indicator
@@ -147,7 +142,7 @@ var ImageUpload = (function () {
     progressDiv.className = 'upload-progress';
     progressDiv.innerHTML =
       '<div class="progress-bar"><div class="progress-bar-fill"></div></div>' +
-      '<span class="upload-status">Requesting upload URL…</span>';
+      '<span class="upload-status">Compressing…</span>';
     item.appendChild(progressDiv);
 
     queueEl.appendChild(item);
@@ -155,6 +150,69 @@ var ImageUpload = (function () {
     var fillBar = progressDiv.querySelector('.progress-bar-fill');
     var statusEl = progressDiv.querySelector('.upload-status');
 
+    // Load image into an Image element
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      previewImg.src = e.target.result;
+
+      var img = new Image();
+      img.onload = function () {
+        // Determine new dimensions
+        var width = img.width;
+        var height = img.height;
+
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          if (width > height) {
+            height = Math.round(height * (MAX_DIMENSION / width));
+            width = MAX_DIMENSION;
+          } else {
+            width = Math.round(width * (MAX_DIMENSION / height));
+            height = MAX_DIMENSION;
+          }
+        }
+
+        // Draw to canvas
+        var canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to JPEG blob
+        canvas.toBlob(function (blob) {
+          if (!blob) {
+            statusEl.textContent = 'Compression failed';
+            statusEl.style.color = 'var(--color-loss)';
+            return;
+          }
+
+          // Create a File-like object with the compressed blob
+          var compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+            type: 'image/jpeg'
+          });
+
+          statusEl.textContent = 'Requesting upload URL…';
+          uploadFile(compressedFile, item, fillBar, statusEl);
+        }, 'image/jpeg', JPEG_QUALITY);
+      };
+
+      img.onerror = function () {
+        statusEl.textContent = 'Failed to read image';
+        statusEl.style.color = 'var(--color-loss)';
+      };
+
+      img.src = e.target.result;
+    };
+
+    reader.onerror = function () {
+      statusEl.textContent = 'Failed to read file';
+      statusEl.style.color = 'var(--color-loss)';
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function uploadFile(file, item, fillBar, statusEl) {
     // Step 1: Request pre-signed URL
     Api.post('/watches/' + _watchId + '/images/upload-url', {
       filename: file.name,
@@ -185,7 +243,8 @@ var ImageUpload = (function () {
 
       // Remove progress after a moment
       setTimeout(function () {
-        progressDiv.remove();
+        var progressDiv = item.querySelector('.upload-progress');
+        if (progressDiv) progressDiv.remove();
         // Add remove button
         var removeBtn = document.createElement('button');
         removeBtn.type = 'button';
@@ -193,8 +252,6 @@ var ImageUpload = (function () {
         removeBtn.setAttribute('aria-label', 'Remove image');
         removeBtn.textContent = '✕';
         removeBtn.addEventListener('click', function () {
-          // Note: we don't have the imageId here easily, so just remove from UI
-          // Full delete happens on form save or via existing images
           item.remove();
         });
         item.appendChild(removeBtn);

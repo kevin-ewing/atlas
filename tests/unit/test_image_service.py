@@ -245,11 +245,7 @@ class TestImageCountLimit:
 # ---------------------------------------------------------------------------
 
 class TestFileSizeValidation:
-    """Tests for file size constants."""
-
-    def test_max_file_size_constant(self):
-        """MAX_FILE_SIZE_BYTES should be 10 MB."""
-        assert image_service.MAX_FILE_SIZE_BYTES == 10 * 1024 * 1024
+    """Tests for image service constants."""
 
     def test_presigned_url_expiry_constant(self):
         """PRESIGNED_URL_EXPIRY should be 300 seconds (5 minutes)."""

@@ -27,9 +27,24 @@ VALID_MOVEMENT_TYPES = {"automatic", "manual", "quartz"}
 VALID_CONDITIONS = {"new", "excellent", "good", "fair", "poor"}
 VALID_STATUSES = {"in_collection", "for_sale", "sold"}
 VALID_FEATURES = {
-    "chronograph", "date", "GMT", "moon phase", "tourbillon",
-    "minute repeater", "perpetual calendar", "diving bezel",
-    "power reserve indicator", "alarm",
+    "chronograph", "date", "day-date", "GMT", "moon phase", "tourbillon",
+    "minute repeater", "perpetual calendar", "annual calendar", "diving bezel",
+    "power reserve indicator", "alarm", "world timer", "flyback chronograph",
+    "split-seconds chronograph", "regulator dial", "skeleton dial",
+    "small seconds", "jumping hour", "retrograde display",
+    "equation of time", "sunrise/sunset indicator", "tide indicator",
+    "dual time zone", "big date", "digital display",
+    "tachymeter", "telemeter", "pulsometer",
+    "luminous hands", "luminous indices", "super-luminova",
+    "sapphire caseback", "screw-down crown", "helium escape valve",
+    "rotating bezel", "slide rule bezel", "countdown bezel",
+    "water resistant 100m+", "water resistant 200m+", "water resistant 300m+",
+    "shock resistant", "anti-magnetic",
+    "COSC certified", "METAS certified", "Geneva seal",
+    "hacking seconds", "hand-wind capability", "quick-set date",
+    "micro-rotor", "column wheel", "vertical clutch",
+    "enamel dial", "guilloché dial", "meteorite dial",
+    "gem-set bezel", "gem-set dial",
 }
 
 # Optional string fields on a watch record
@@ -43,6 +58,7 @@ _OPTIONAL_STRING_FIELDS = [
 _OPTIONAL_SPECIAL_FIELDS = [
     "yearOfProduction", "caseDiameterMm", "movementType",
     "condition", "boxIncluded", "papersIncluded", "features", "status",
+    "purchasePriceCents",
 ]
 
 
@@ -110,6 +126,11 @@ def _validate_watch_data(data: dict, is_update: bool = False) -> list[str]:
                     f"invalid features: {', '.join(invalid)}. "
                     f"Valid features: {', '.join(sorted(VALID_FEATURES))}"
                 )
+
+    if "purchasePriceCents" in data and data["purchasePriceCents"] is not None:
+        ppc = data["purchasePriceCents"]
+        if not isinstance(ppc, (int, float)) or ppc < 0:
+            errors.append("purchasePriceCents must be a non-negative number")
 
     return errors
 
@@ -189,6 +210,8 @@ def _build_watch_item(watch_id: str, data: dict, now: str) -> dict:
         item["papersIncluded"] = data["papersIncluded"]
     if "features" in data and data["features"] is not None:
         item["features"] = data["features"]
+    if "purchasePriceCents" in data and data["purchasePriceCents"] is not None:
+        item["purchasePriceCents"] = data["purchasePriceCents"]
 
     return item
 
@@ -336,9 +359,24 @@ def _apply_filters(watches: list[dict], params: dict) -> list[dict]:
 def _compute_pnl_for_watch(table, watch_id: str) -> int:
     """Compute profit/loss in cents for a single watch (inline).
 
-    Returns pnl_cents: sale_price - sum(expenses) if sale exists,
-    otherwise -sum(expenses).
+    Returns pnl_cents: sale_price - (purchase_price + sum(expenses)) if sale exists,
+    otherwise -(purchase_price + sum(expenses)).
     """
+    # Fetch watch metadata for purchasePriceCents
+    purchase_price_cents = 0
+    try:
+        watch_result = table.get_item(
+            Key={"PK": f"WATCH#{watch_id}", "SK": "METADATA"}
+        )
+        watch_item = watch_result.get("Item")
+        if watch_item:
+            ppc = watch_item.get("purchasePriceCents", 0)
+            if isinstance(ppc, Decimal):
+                ppc = int(ppc)
+            purchase_price_cents = ppc or 0
+    except ClientError:
+        pass
+
     # Fetch expenses
     try:
         expense_resp = table.query(
@@ -359,6 +397,8 @@ def _compute_pnl_for_watch(table, watch_id: str) -> int:
             amt = int(amt)
         total_expense_cents += amt
 
+    total_cost = purchase_price_cents + total_expense_cents
+
     # Fetch sale
     try:
         sale_result = table.get_item(
@@ -372,9 +412,9 @@ def _compute_pnl_for_watch(table, watch_id: str) -> int:
         sp = sale_item.get("salePriceCents", 0)
         if isinstance(sp, Decimal):
             sp = int(sp)
-        return sp - total_expense_cents
+        return sp - total_cost
     else:
-        return -total_expense_cents
+        return -total_cost
 
 
 def _sort_watches(watches: list[dict], sort_by: str | None, sort_dir: str | None, table) -> list[dict]:

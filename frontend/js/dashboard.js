@@ -200,19 +200,20 @@ var Dashboard = (function () {
     html += detailRow('Year', watch.yearOfProduction);
     html += detailRow('Case Material', watch.caseMaterial);
     html += detailRow('Case Diameter', watch.caseDiameterMm ? watch.caseDiameterMm + ' mm' : null);
-    html += detailRow('Movement', watch.movementType);
+    html += detailRow('Movement', Utils.capitalize(watch.movementType));
     html += detailRow('Dial Color', watch.dialColor);
     html += detailRow('Band Material', watch.bandMaterial);
     html += detailRow('Band Color', watch.bandColor);
-    html += detailRow('Condition', watch.condition);
+    html += detailRow('Condition', Utils.capitalize(watch.condition));
     html += detailRow('Box Included', watch.boxIncluded != null ? (watch.boxIncluded ? 'Yes' : 'No') : null);
     html += detailRow('Papers Included', watch.papersIncluded != null ? (watch.papersIncluded ? 'Yes' : 'No') : null);
     html += detailRow('Serial Number', watch.serialNumber);
     html += detailRow('Acquisition Date', Utils.formatDate(watch.acquisitionDate));
     html += detailRow('Source', watch.acquisitionSource);
-    html += detailRow('Status', watch.status);
+    html += detailRow('Purchase Price', watch.purchasePriceCents != null ? Utils.formatCurrency(watch.purchasePriceCents) : null);
+    html += detailRow('Status', Utils.formatStatus(watch.status));
     if (watch.features && watch.features.length > 0) {
-      html += detailRow('Features', watch.features.join(', '));
+      html += detailRow('Features', watch.features.map(function (f) { return Utils.capitalize(f); }).join(', '));
     }
     if (watch.notes) {
       html += '<div class="detail-label" style="grid-column:1/-1;margin-top:0.5rem">Notes</div>';

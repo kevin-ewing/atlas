@@ -69,6 +69,9 @@ def calculate_watch_pnl(watch_id: str) -> dict:
     if "Item" not in watch_result:
         return error_response(404, "NOT_FOUND", f"Watch {watch_id} not found")
 
+    watch_item = watch_result["Item"]
+    purchase_price_cents = _serialize_decimal(watch_item.get("purchasePriceCents", 0)) or 0
+
     # Fetch all expenses for this watch
     try:
         expense_response = table.query(
@@ -87,6 +90,8 @@ def calculate_watch_pnl(watch_id: str) -> dict:
         _serialize_decimal(e.get("amountCents", 0)) for e in expenses
     )
 
+    total_cost_cents = purchase_price_cents + total_expense_cents
+
     # Fetch sale record
     try:
         sale_result = table.get_item(
@@ -101,9 +106,9 @@ def calculate_watch_pnl(watch_id: str) -> dict:
 
     if sale_item:
         sale_price_cents = _serialize_decimal(sale_item.get("salePriceCents", 0))
-        pnl_cents = sale_price_cents - total_expense_cents
+        pnl_cents = sale_price_cents - total_cost_cents
     else:
-        pnl_cents = -total_expense_cents
+        pnl_cents = -total_cost_cents
 
     # Determine indicator
     if pnl_cents > 0:
@@ -117,6 +122,7 @@ def calculate_watch_pnl(watch_id: str) -> dict:
         "watchId": watch_id,
         "pnlCents": pnl_cents,
         "indicator": indicator,
+        "purchasePriceCents": purchase_price_cents,
         "totalExpenseCents": total_expense_cents,
         "salePriceCents": sale_price_cents,
     }
@@ -159,6 +165,8 @@ def calculate_portfolio_summary() -> dict:
         if not watch_id:
             continue
 
+        purchase_price_cents = _serialize_decimal(watch_item.get("purchasePriceCents", 0)) or 0
+
         # Fetch expenses for this watch
         try:
             expense_response = table.query(
@@ -177,6 +185,8 @@ def calculate_portfolio_summary() -> dict:
             _serialize_decimal(e.get("amountCents", 0)) for e in expenses
         )
 
+        total_cost_cents = purchase_price_cents + total_expense_cents
+
         # Fetch sale record
         try:
             sale_result = table.get_item(
@@ -191,9 +201,9 @@ def calculate_portfolio_summary() -> dict:
 
         if sale_item:
             sale_price_cents = _serialize_decimal(sale_item.get("salePriceCents", 0))
-            pnl_cents = sale_price_cents - total_expense_cents
+            pnl_cents = sale_price_cents - total_cost_cents
         else:
-            pnl_cents = -total_expense_cents
+            pnl_cents = -total_cost_cents
             unsold_count += 1
 
         # Determine indicator
