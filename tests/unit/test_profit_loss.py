@@ -162,10 +162,10 @@ class TestCalculatePortfolioSummary:
         assert summary_resp["statusCode"] == 200
         summary = json.loads(summary_resp["body"])
 
-        # Total P&L: +400 + (-300) + (-300) = -200
-        assert summary["totalPnlCents"] == -200_00
+        # Total P&L includes only sold watches: +400 + (-300) = +100
+        assert summary["totalPnlCents"] == 100_00
         assert summary["profitableCount"] == 1
-        assert summary["lossCount"] == 2
+        assert summary["lossCount"] == 1
         assert summary["unsoldCount"] == 1
         assert len(summary["watches"]) == 3
 
@@ -218,7 +218,7 @@ class TestCalculatePortfolioSummary:
         summary_resp = calculate_portfolio_summary()
         summary = json.loads(summary_resp["body"])
 
-        assert summary["totalPnlCents"] == -600_00  # 3 * (-200)
+        assert summary["totalPnlCents"] == 0
         assert summary["profitableCount"] == 0
-        assert summary["lossCount"] == 3
+        assert summary["lossCount"] == 0
         assert summary["unsoldCount"] == 3

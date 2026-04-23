@@ -134,7 +134,9 @@ def calculate_portfolio_summary() -> dict:
     """Calculate portfolio-level P&L summary across all watches.
 
     Queries GSI1 for all watches (GSI1PK=WATCHES), computes individual P&L
-    for each, and aggregates totals.
+    for each, and aggregates totals. Unsold watches are tracked in the watch
+    list and unsoldCount, but excluded from realized total P&L and
+    profit/loss counts.
 
     Returns:
         API Gateway response dict with portfolio summary (200).
@@ -202,6 +204,11 @@ def calculate_portfolio_summary() -> dict:
         if sale_item:
             sale_price_cents = _serialize_decimal(sale_item.get("salePriceCents", 0))
             pnl_cents = sale_price_cents - total_cost_cents
+            total_pnl_cents += pnl_cents
+            if pnl_cents > 0:
+                profitable_count += 1
+            elif pnl_cents < 0:
+                loss_count += 1
         else:
             pnl_cents = -total_cost_cents
             unsold_count += 1
@@ -209,14 +216,10 @@ def calculate_portfolio_summary() -> dict:
         # Determine indicator
         if pnl_cents > 0:
             indicator = "profit"
-            profitable_count += 1
         elif pnl_cents < 0:
             indicator = "loss"
-            loss_count += 1
         else:
             indicator = "break_even"
-
-        total_pnl_cents += pnl_cents
 
         watch_pnl_list.append({
             "watchId": watch_id,

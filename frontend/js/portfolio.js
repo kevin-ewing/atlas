@@ -72,7 +72,7 @@ var Portfolio = (function () {
 
     html += '<div class="stat-card">';
     html += '<div class="stat-value ' + Utils.pnlClass(totalPnl) + '">' + Utils.formatPnl(totalPnl) + '</div>';
-    html += '<div class="stat-label">Total P&L</div>';
+    html += '<div class="stat-label">Net Total</div>';
     html += '</div>';
 
     html += '<div class="stat-card">';
@@ -322,7 +322,7 @@ var Portfolio = (function () {
     });
 
     html += '</tbody></table>';
-    html += '<p style="font-size:0.8125rem;color:var(--color-text-muted);margin-top:0.5rem">' + watches.length + ' watch(es)</p>';
+    html += '<p style="font-size:0.8125rem;color:var(--color-text-muted);margin-top:0.5rem">' + watches.length + ' ' + (watches.length === 1 ? 'watch' : 'watches') + '</p>';
 
     wrapper.innerHTML = html;
     container.appendChild(wrapper);

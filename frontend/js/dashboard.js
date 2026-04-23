@@ -8,12 +8,15 @@ var Dashboard = (function () {
 
   var _watches = [];
   var _detailCache = {}; // Cache for lazy-loaded watch details keyed by watchId
+  var _masonryFrame = null;
+  var _resizeBound = false;
 
   function load() {
     var listEl = document.getElementById('watch-list');
     var emptyEl = document.getElementById('watch-list-empty');
     if (!listEl) return;
 
+    ensureMasonryResizeHandler();
     listEl.innerHTML = '';
     _detailCache = {};
     if (emptyEl) emptyEl.hidden = true;
@@ -74,6 +77,8 @@ var Dashboard = (function () {
       var card = createCard(watch);
       listEl.appendChild(card);
     });
+
+    scheduleMasonryLayout();
   }
 
   // Palette colors for placeholder icon backgrounds
@@ -159,10 +164,12 @@ var Dashboard = (function () {
     if (isExpanded) {
       card.classList.remove('expanded');
       if (summaryEl) summaryEl.setAttribute('aria-expanded', 'false');
+      scheduleMasonryLayout();
     } else {
       collapseOtherCards(card);
       card.classList.add('expanded');
       if (summaryEl) summaryEl.setAttribute('aria-expanded', 'true');
+      scheduleMasonryLayout();
       loadCardDetail(card, watch);
     }
   }
@@ -191,6 +198,7 @@ var Dashboard = (function () {
     }
 
     detail.innerHTML = '<p class="empty-state">Loading…</p>';
+    scheduleMasonryLayout();
 
     // Fetch full watch data, expenses, sale, and images in parallel
     Promise.all([
@@ -219,6 +227,7 @@ var Dashboard = (function () {
       renderDetail(detail, fullWatch, expenses, sale, images, watch.watchId);
     }).catch(function () {
       detail.innerHTML = '<p class="empty-state">Failed to load details.</p>';
+      scheduleMasonryLayout();
     });
   }
 
@@ -319,6 +328,43 @@ var Dashboard = (function () {
         e.stopPropagation();
         handleDelete(watchId);
       });
+    }
+
+    scheduleMasonryLayout();
+  }
+
+  function ensureMasonryResizeHandler() {
+    if (_resizeBound) return;
+    _resizeBound = true;
+    window.addEventListener('resize', scheduleMasonryLayout);
+  }
+
+  function scheduleMasonryLayout() {
+    if (_masonryFrame !== null) {
+      cancelAnimationFrame(_masonryFrame);
+    }
+
+    _masonryFrame = requestAnimationFrame(function () {
+      _masonryFrame = null;
+      relayoutMasonry();
+    });
+  }
+
+  function relayoutMasonry() {
+    var listEl = document.getElementById('watch-list');
+    if (!listEl) return;
+
+    var styles = window.getComputedStyle(listEl);
+    var rowHeight = parseFloat(styles.getPropertyValue('grid-auto-rows'));
+    var rowGap = parseFloat(styles.getPropertyValue('row-gap')) || parseFloat(styles.getPropertyValue('gap')) || 0;
+    if (!rowHeight) return;
+
+    var cards = listEl.querySelectorAll('.watch-card');
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      card.style.gridRowEnd = 'span 1';
+      var span = Math.max(1, Math.ceil((card.getBoundingClientRect().height + rowGap) / (rowHeight + rowGap)));
+      card.style.gridRowEnd = 'span ' + span;
     }
   }
 

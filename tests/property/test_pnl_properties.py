@@ -230,17 +230,23 @@ class TestPortfolioSummaryAggregation:
         our_watches = [w for w in summary["watches"] if w["watchId"] in watch_ids]
 
         # Verify our watches have correct P&L
-        our_total_pnl = sum(w["pnlCents"] for w in our_watches)
-        expected_total = sum(pnl for _, pnl, _ in expected_pnls)
+        our_total_pnl = sum(
+            w["pnlCents"] for w in our_watches
+            if w["salePriceCents"] is not None
+        )
+        expected_total = sum(pnl for _, pnl, is_unsold in expected_pnls if not is_unsold)
         assert our_total_pnl == expected_total
 
         # Verify counts for our watches
         our_profitable = sum(1 for w in our_watches if w["pnlCents"] > 0)
-        our_loss = sum(1 for w in our_watches if w["pnlCents"] < 0)
+        our_loss = sum(
+            1 for w in our_watches
+            if w["salePriceCents"] is not None and w["pnlCents"] < 0
+        )
         our_unsold = sum(1 for _, _, is_unsold in expected_pnls if is_unsold)
 
         expected_profitable = sum(1 for _, pnl, _ in expected_pnls if pnl > 0)
-        expected_loss = sum(1 for _, pnl, _ in expected_pnls if pnl < 0)
+        expected_loss = sum(1 for _, pnl, is_unsold in expected_pnls if pnl < 0 and not is_unsold)
 
         assert our_profitable == expected_profitable
         assert our_loss == expected_loss
