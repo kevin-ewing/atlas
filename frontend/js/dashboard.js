@@ -76,6 +76,15 @@ var Dashboard = (function () {
     });
   }
 
+  // Palette colors for placeholder icon backgrounds
+  var _placeholderColors = [
+    'rgba(120, 179, 214, 0.22)',  // sky
+    'rgba(252, 203, 203, 0.35)',  // blush
+    'rgba(79, 121, 105, 0.18)',   // forest
+    'rgba(216, 105, 105, 0.18)',  // clay
+    'rgba(222, 227, 226, 0.5)',   // paper
+  ];
+
   function createCard(watch) {
     var card = document.createElement('div');
     card.className = 'watch-card';
@@ -88,20 +97,31 @@ var Dashboard = (function () {
     summary.setAttribute('tabindex', '0');
     summary.setAttribute('role', 'button');
     summary.setAttribute('aria-expanded', 'false');
-    summary.setAttribute('aria-label', watch.maker + ' ' + watch.model + ', ' + Utils.formatPnl(watch.pnlCents));
 
     // Thumbnail
     var thumbHtml = '';
     if (watch.thumbnailUrl) {
       thumbHtml = '<img class="watch-thumb" src="' + Utils.escapeHtml(watch.thumbnailUrl) + '" alt="' + Utils.escapeHtml(watch.maker + ' ' + watch.model) + '">';
     } else {
-      thumbHtml = '<div class="watch-thumb-placeholder" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><polyline points="12 9 12 12 14 13"/><path d="M9 2h6"/><path d="M9 22h6"/><path d="M16.5 3.5l1 1"/><path d="M7.5 3.5l-1 1"/></svg></div>';
+      // Pick a color from the palette based on the watch index
+      var colorIndex = _watches.indexOf(watch) % _placeholderColors.length;
+      var bgColor = _placeholderColors[colorIndex];
+      thumbHtml = '<div class="watch-thumb-placeholder" aria-hidden="true" style="background:' + bgColor + '"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><polyline points="12 9 12 12 14 13"/><path d="M9 2h6"/><path d="M9 22h6"/><path d="M16.5 3.5l1 1"/><path d="M7.5 3.5l-1 1"/></svg></div>';
     }
 
-    // P&L
-    var pnlCents = watch.pnlCents || 0;
-    var pnlClass = Utils.pnlClass(pnlCents);
-    var pnlText = Utils.formatPnl(pnlCents);
+    // P&L — only show dollar amount for for_sale or sold watches
+    var pnlHtml = '';
+    var status = watch.status || 'in_collection';
+    if (status === 'for_sale' || status === 'sold') {
+      var pnlCents = watch.pnlCents || 0;
+      var pnlClass = Utils.pnlClass(pnlCents);
+      var pnlText = Utils.formatPnl(pnlCents);
+      pnlHtml = '<span class="watch-card-pnl ' + pnlClass + '">' + pnlText + '</span>';
+    } else {
+      pnlHtml = '<span class="watch-card-pnl" style="color:var(--color-text-muted);font-size:0.8125rem">' + Utils.formatStatus(status) + '</span>';
+    }
+
+    summary.setAttribute('aria-label', watch.maker + ' ' + watch.model);
 
     summary.innerHTML =
       thumbHtml +
@@ -109,7 +129,7 @@ var Dashboard = (function () {
         '<div class="watch-card-maker">' + Utils.escapeHtml(watch.maker) + '</div>' +
         '<div class="watch-card-model">' + Utils.escapeHtml(watch.model) + '</div>' +
       '</div>' +
-      '<span class="watch-card-pnl ' + pnlClass + '">' + pnlText + '</span>' +
+      pnlHtml +
       '<span class="watch-card-expand-icon" aria-hidden="true">▼</span>';
 
     summary.addEventListener('click', function () {

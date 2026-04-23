@@ -502,6 +502,37 @@ def list_watches(event: dict) -> dict:
     sort_dir = params.get("sortDir")
     watches = _sort_watches(watches, sort_by, sort_dir, table)
 
+    # Compute P&L for each watch and attach thumbnailUrl
+    bucket_name = os.environ.get("IMAGE_BUCKET_NAME", "")
+    s3_client = _get_s3_client()
+    for w in watches:
+        wid = w.get("watchId", "")
+        w["pnlCents"] = _compute_pnl_for_watch(table, wid)
+
+        # Attach thumbnail URL from first image if available
+        try:
+            img_resp = table.query(
+                KeyConditionExpression="PK = :pk AND begins_with(SK, :sk_prefix)",
+                ExpressionAttributeValues={
+                    ":pk": f"WATCH#{wid}",
+                    ":sk_prefix": "IMAGE#",
+                },
+                Limit=1,
+            )
+            img_items = img_resp.get("Items", [])
+            if img_items and "s3Key" in img_items[0] and bucket_name:
+                try:
+                    thumb_url = s3_client.generate_presigned_url(
+                        "get_object",
+                        Params={"Bucket": bucket_name, "Key": img_items[0]["s3Key"]},
+                        ExpiresIn=3600,
+                    )
+                    w["thumbnailUrl"] = thumb_url
+                except ClientError:
+                    pass
+        except ClientError:
+            pass
+
     return json_response(200, {"watches": watches})
 
 

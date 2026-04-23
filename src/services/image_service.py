@@ -254,6 +254,8 @@ def confirm_upload(watch_id: str, image_id: str) -> dict:
 def list_images(watch_id: str) -> dict:
     """List all images for a watch.
 
+    Returns pre-signed GET URLs for each image so the browser can display them.
+
     Args:
         watch_id: The watch UUID.
 
@@ -276,6 +278,22 @@ def list_images(watch_id: str) -> dict:
 
     items = response.get("Items", [])
     images = [_serialize_item(item) for item in items]
+
+    # Generate pre-signed GET URLs for each image
+    bucket_name = _get_bucket_name()
+    if bucket_name:
+        s3_client = _get_s3_client()
+        for img in images:
+            s3_key = img.get("s3Key", "")
+            if s3_key:
+                try:
+                    img["url"] = s3_client.generate_presigned_url(
+                        "get_object",
+                        Params={"Bucket": bucket_name, "Key": s3_key},
+                        ExpiresIn=3600,
+                    )
+                except ClientError:
+                    pass
 
     return json_response(200, {"images": images})
 

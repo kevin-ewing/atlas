@@ -303,14 +303,21 @@ var Portfolio = (function () {
     html += '</tr></thead><tbody>';
 
     watches.forEach(function (w) {
+      var status = w.status || 'in_collection';
       var pnlCents = w.pnlCents || 0;
-      var pnlClass = Utils.pnlClass(pnlCents);
+      var pnlHtml = '';
+      if (status === 'for_sale' || status === 'sold') {
+        var pnlClass = Utils.pnlClass(pnlCents);
+        pnlHtml = '<td class="' + pnlClass + '">' + Utils.formatPnl(pnlCents) + '</td>';
+      } else {
+        pnlHtml = '<td style="color:var(--color-text-muted)">—</td>';
+      }
       html += '<tr>';
       html += '<td>' + Utils.escapeHtml(w.maker) + '</td>';
       html += '<td><a href="#/watches/' + w.watchId + '/edit">' + Utils.escapeHtml(w.model) + '</a></td>';
       html += '<td>' + Utils.formatStatus(w.status) + '</td>';
       html += '<td>' + (w.yearOfProduction || '—') + '</td>';
-      html += '<td class="' + pnlClass + '">' + Utils.formatPnl(pnlCents) + '</td>';
+      html += pnlHtml;
       html += '</tr>';
     });
 
