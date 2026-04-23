@@ -6,23 +6,29 @@
 }
 
 :root {
-  --color-bg: #f8f9fa;
-  --color-surface: #ffffff;
-  --color-border: #dee2e6;
-  --color-text: #212529;
-  --color-text-muted: #6c757d;
-  --color-primary: #343a40;
-  --color-primary-hover: #23272b;
-  --color-accent: #495057;
-  --color-profit: #198754;
-  --color-loss: #dc3545;
-  --color-error: #dc3545;
-  --color-lockout-bg: #fff3cd;
-  --color-lockout-border: #ffc107;
-  --color-focus: #4a90d9;
+  --color-paper: #dee3e2;
+  --color-blush: #fccbcb;
+  --color-sky: #78b3d6;
+  --color-clay: #d86969;
+  --color-forest: #4f7969;
+  --color-bg: #dee3e2;
+  --color-surface: rgba(255, 255, 255, 0.72);
+  --color-surface-strong: #f4f1f1;
+  --color-border: #78b3d6;
+  --color-text: #315346;
+  --color-text-muted: #4f7969;
+  --color-primary: #4f7969;
+  --color-primary-hover: #3d6154;
+  --color-accent: #78b3d6;
+  --color-profit: #4f7969;
+  --color-loss: #d86969;
+  --color-error: #d86969;
+  --color-lockout-bg: #fccbcb;
+  --color-lockout-border: #d86969;
+  --color-focus: #78b3d6;
   --radius: 6px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 12px 30px rgba(79, 121, 105, 0.08);
+  --shadow-md: 0 18px 42px rgba(79, 121, 105, 0.14);
   --transition: 0.2s ease;
   --max-width: 1200px;
 }
@@ -35,7 +41,10 @@ html {
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--color-text);
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at top left, rgba(252, 203, 203, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(120, 179, 214, 0.12), transparent 30%),
+    linear-gradient(180deg, #edf0ef 0%, var(--color-bg) 100%);
   line-height: 1.6;
   min-height: 100vh;
 }
@@ -93,9 +102,9 @@ a:hover {
   font-weight: 500;
   line-height: 1.5;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: 999px;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
   white-space: nowrap;
 }
 
@@ -108,30 +117,34 @@ a:hover {
   background: var(--color-primary);
   color: #fff;
   border-color: var(--color-primary);
+  box-shadow: 0 10px 24px rgba(79, 121, 105, 0.18);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: var(--color-surface);
+  background: rgba(120, 179, 214, 0.14);
   color: var(--color-text);
   border-color: var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--color-bg);
+  background: rgba(120, 179, 214, 0.24);
 }
 
 .btn-danger {
   background: var(--color-loss);
   color: #fff;
   border-color: var(--color-loss);
+  box-shadow: 0 10px 24px rgba(216, 105, 105, 0.18);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #bb2d3b;
+  background: #bf5a5a;
+  transform: translateY(-1px);
 }
 
 .btn-text {
@@ -142,7 +155,8 @@ a:hover {
 }
 
 .btn-text:hover:not(:disabled) {
-  color: var(--color-text);
+  color: var(--color-primary);
+  background: rgba(120, 179, 214, 0.12);
 }
 
 .btn-sm {
@@ -177,18 +191,27 @@ a:hover {
   font-size: 0.9375rem;
   font-family: inherit;
   color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.84);
+  border: none;
   border-radius: var(--radius);
-  transition: border-color var(--transition);
+  box-shadow: inset 0 0 0 1px rgba(120, 179, 214, 0.12);
+  transition: box-shadow var(--transition), background var(--transition);
+}
+
+.form-group input[required],
+.form-group select[required],
+.form-group textarea[required] {
+  box-shadow: inset 0 0 0 1px rgba(216, 105, 105, 0.2);
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  border-color: var(--color-focus);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.15);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    inset 0 0 0 1px rgba(120, 179, 214, 0.28),
+    0 0 0 3px rgba(120, 179, 214, 0.16);
 }
 
 .form-group textarea {
@@ -199,7 +222,9 @@ a:hover {
 .form-group input.invalid,
 .form-group select.invalid,
 .form-group textarea.invalid {
-  border-color: var(--color-error);
+  box-shadow:
+    inset 0 0 0 1px rgba(216, 105, 105, 0.45),
+    0 0 0 3px rgba(216, 105, 105, 0.08);
 }
 
 .field-error {
@@ -223,10 +248,22 @@ a:hover {
   grid-template-columns: 1fr;
 }
 
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+legend {
+  padding: 0;
+}
+
 .form-actions {
   display: flex;
   gap: 0.75rem;
   margin-top: 1.5rem;
+  flex-wrap: wrap;
 }
 
 /* ===== Checkbox / Toggle Group ===== */
@@ -253,21 +290,22 @@ a:hover {
 /* ===== Login Page ===== */
 .login-container {
   max-width: 380px;
-  margin: 0 auto;
+  margin: 4rem auto;
   padding: 3rem 1.25rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(252, 203, 203, 0.14));
+  border: 1px solid rgba(79, 121, 105, 0.1);
+  border-radius: 24px;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(10px);
 }
 
 .login-title {
-  font-size: 2rem;
+  font-size: 2.3rem;
   text-align: center;
-  margin-bottom: 0.25rem;
-}
-
-.login-subtitle {
-  text-align: center;
-  color: var(--color-text-muted);
   margin-bottom: 2rem;
-  font-size: 0.9375rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
 }
 
 .lockout-notice {
@@ -288,8 +326,9 @@ a:hover {
 }
 
 .app-header {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  background: rgba(222, 227, 226, 0.88);
+  border-bottom: 1px solid rgba(79, 121, 105, 0.18);
+  backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -307,9 +346,11 @@ a:hover {
 .logo {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-primary);
   text-decoration: none;
   flex-shrink: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .logo:hover {
@@ -331,15 +372,15 @@ a:hover {
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
   color: var(--color-text-muted);
-  border-radius: var(--radius);
+  border-radius: 999px;
   transition: color var(--transition), background var(--transition);
   text-decoration: none;
 }
 
 .nav-link:hover,
 .nav-link.active {
-  color: var(--color-text);
-  background: var(--color-bg);
+  color: #fff;
+  background: var(--color-primary);
   text-decoration: none;
 }
 
@@ -377,16 +418,17 @@ a:hover {
 
 /* ===== Watch Card ===== */
 .watch-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
+  background: #f7f8f7;
+  border: 1px solid rgba(79, 121, 105, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(79, 121, 105, 0.04);
   overflow: hidden;
-  transition: box-shadow var(--transition);
+  transition: box-shadow var(--transition), transform var(--transition);
 }
 
 .watch-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 18px rgba(79, 121, 105, 0.08);
+  transform: translateY(-1px);
 }
 
 .watch-card-summary {
@@ -416,7 +458,7 @@ a:hover {
   width: 56px;
   height: 56px;
   border-radius: var(--radius);
-  background: var(--color-bg);
+  background: rgba(120, 179, 214, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -432,7 +474,7 @@ a:hover {
 
 .watch-card-maker {
   font-size: 0.8125rem;
-  color: var(--color-text-muted);
+  color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -487,10 +529,8 @@ a:hover {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid var(--color-border);
+  color: var(--color-primary);
+  margin-bottom: 0.85rem;
 }
 
 .detail-grid {
@@ -525,7 +565,7 @@ a:hover {
 
 .expense-table th {
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--color-primary);
   font-size: 0.8125rem;
 }
 
@@ -596,12 +636,12 @@ a:hover {
 }
 
 .stat-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  background: #fbfcfb;
+  border: 1px solid rgba(79, 121, 105, 0.08);
+  border-radius: 12px;
   padding: 1.25rem;
   text-align: center;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(79, 121, 105, 0.04);
 }
 
 .stat-value {
@@ -619,9 +659,9 @@ a:hover {
 
 /* ===== Filters & Sort Controls ===== */
 .controls-bar {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  background: #f7f8f7;
+  border: 1px solid rgba(79, 121, 105, 0.08);
+  border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -672,8 +712,8 @@ a:hover {
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background: rgba(252, 203, 203, 0.18);
+  border: 1px solid rgba(216, 105, 105, 0.22);
   border-radius: var(--radius);
   margin-bottom: 0.5rem;
 }
@@ -691,18 +731,19 @@ a:hover {
 /* ===== Image Upload ===== */
 .image-upload-area {
   border: 2px dashed var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 16px;
   padding: 1.5rem;
   text-align: center;
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition);
   margin-top: 0.5rem;
+  background: rgba(120, 179, 214, 0.08);
 }
 
 .image-upload-area:hover,
 .image-upload-area.dragover {
   border-color: var(--color-accent);
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(120, 179, 214, 0.16);
 }
 
 .image-upload-area p {
@@ -755,7 +796,7 @@ a:hover {
 
 .progress-bar {
   height: 4px;
-  background: var(--color-border);
+  background: rgba(120, 179, 214, 0.22);
   border-radius: 2px;
   overflow: hidden;
   margin-top: 0.25rem;
@@ -777,11 +818,12 @@ a:hover {
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(222, 227, 226, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .spinner {

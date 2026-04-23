@@ -71,7 +71,12 @@ var App = (function () {
   }
 
   function navigateTo(path) {
-    window.location.hash = '#' + path;
+    var nextHash = '#' + path;
+    if (window.location.hash === nextHash) {
+      onRouteChange();
+      return;
+    }
+    window.location.hash = nextHash;
   }
 
   function showLogin() {
