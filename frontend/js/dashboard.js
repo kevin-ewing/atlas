@@ -160,9 +160,22 @@ var Dashboard = (function () {
       card.classList.remove('expanded');
       if (summaryEl) summaryEl.setAttribute('aria-expanded', 'false');
     } else {
+      collapseOtherCards(card);
       card.classList.add('expanded');
       if (summaryEl) summaryEl.setAttribute('aria-expanded', 'true');
       loadCardDetail(card, watch);
+    }
+  }
+
+  function collapseOtherCards(activeCard) {
+    var cards = document.querySelectorAll('#watch-list .watch-card.expanded');
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      if (card === activeCard) continue;
+
+      card.classList.remove('expanded');
+      var summaryEl = card.querySelector('.watch-card-summary');
+      if (summaryEl) summaryEl.setAttribute('aria-expanded', 'false');
     }
   }
 

@@ -12,6 +12,7 @@
 #   make deploy       Build and deploy to AWS
 #   make deploy-first First-time guided deploy to AWS
 #   make upload       Upload frontend to S3 + invalidate cache
+#   make release      Deploy backend + upload frontend
 #   make secrets      Provision auth secret in Secrets Manager
 #   make clean        Remove build artifacts
 #   make help         Show this help
@@ -116,6 +117,9 @@ upload: ## Upload frontend to S3 and invalidate CloudFront cache
 	echo "  Invalidating CloudFront cache ($$DIST_ID) ..." && \
 	aws cloudfront create-invalidation --distribution-id $$DIST_ID --paths "/*" > /dev/null && \
 	echo "  Done."
+
+.PHONY: release
+release: deploy upload ## Deploy backend and upload frontend
 
 .PHONY: secrets
 secrets: ## Provision auth secret in Secrets Manager

@@ -261,6 +261,28 @@ var WatchForm = (function () {
     });
   }
 
+  function syncExpenseDraftsFromDom() {
+    var rows = document.querySelectorAll('.inline-expense-item');
+    if (!rows.length) return;
+
+    _expenses = Array.prototype.map.call(rows, function (row, index) {
+      var existing = _expenses[index] || {};
+      var catEl = row.querySelector('[name="exp-category"]');
+      var amtEl = row.querySelector('[name="exp-amount"]');
+      var dateEl = row.querySelector('[name="exp-date"]');
+      var descEl = row.querySelector('[name="exp-description"]');
+      var amount = amtEl && amtEl.value !== '' ? Math.round(parseFloat(amtEl.value) * 100) : null;
+
+      return {
+        expenseId: existing.expenseId || null,
+        category: catEl ? catEl.value : '',
+        amountCents: isNaN(amount) ? null : amount,
+        expenseDate: dateEl ? dateEl.value : '',
+        description: descEl ? descEl.value : ''
+      };
+    });
+  }
+
   function createExpenseRow(exp, index) {
     var row = document.createElement('div');
     row.className = 'inline-expense-item';
@@ -288,6 +310,7 @@ var WatchForm = (function () {
       '<button type="button" class="btn btn-danger btn-sm exp-remove" aria-label="Remove expense">✕</button>';
 
     row.querySelector('.exp-remove').addEventListener('click', function () {
+      syncExpenseDraftsFromDom();
       _expenses.splice(index, 1);
       renderExpenses();
     });
@@ -338,6 +361,7 @@ var WatchForm = (function () {
     var addExpBtn = document.getElementById('btn-add-expense');
     if (addExpBtn) {
       addExpBtn.addEventListener('click', function () {
+        syncExpenseDraftsFromDom();
         _expenses.push({ category: '', amountCents: null, expenseDate: '', description: '' });
         renderExpenses();
       });
@@ -392,6 +416,7 @@ var WatchForm = (function () {
 
     // Validate expenses
     var expenseRows = document.querySelectorAll('.inline-expense-item');
+    syncExpenseDraftsFromDom();
     var collectedExpenses = collectExpenses(expenseRows, errors);
 
     if (errors.length > 0) return;
