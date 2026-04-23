@@ -87,7 +87,7 @@ var Portfolio = (function () {
 
     html += '<div class="stat-card">';
     html += '<div class="stat-value">' + unsold + '</div>';
-    html += '<div class="stat-label">Unsold</div>';
+    html += '<div class="stat-label">Holding</div>';
     html += '</div>';
 
     html += '</div>';

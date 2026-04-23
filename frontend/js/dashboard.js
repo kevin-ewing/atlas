@@ -212,10 +212,11 @@ var Dashboard = (function () {
   function renderDetail(container, watch, expenses, sale, images, watchId) {
     var html = '';
 
-    // Attributes section
-    html += '<div class="detail-section">';
-    html += '<div class="detail-section-title">Attributes</div>';
+    // Single unified grid for all label/value pairs
     html += '<div class="detail-grid">';
+
+    // Attributes section title
+    html += '<div class="detail-section-title" style="grid-column:1/-1">Attributes</div>';
     html += detailRow('Reference', watch.referenceNumber);
     html += detailRow('Year', watch.yearOfProduction);
     html += detailRow('Case Material', watch.caseMaterial);
@@ -239,11 +240,23 @@ var Dashboard = (function () {
       html += '<div class="detail-label" style="grid-column:1/-1;margin-top:0.5rem">Notes</div>';
       html += '<div class="detail-value" style="grid-column:1/-1">' + Utils.escapeHtml(watch.notes) + '</div>';
     }
-    html += '</div></div>';
 
-    // Expenses section — only if there are expenses
+    // Sale section — inline in the same grid
+    if (sale && sale.salePriceCents != null) {
+      html += '<div class="detail-section-title" style="grid-column:1/-1;margin-top:1rem">Sale</div>';
+      html += detailRow('Sale Price', Utils.formatCurrency(sale.salePriceCents));
+      html += detailRow('Sale Date', Utils.formatDate(sale.saleDate));
+      html += detailRow('Buyer / Platform', sale.buyerOrPlatform);
+      if (sale.notes) {
+        html += detailRow('Notes', sale.notes);
+      }
+    }
+
+    html += '</div>'; // close detail-grid
+
+    // Expenses section — uses its own table layout
     if (expenses.length > 0) {
-      html += '<div class="detail-section">';
+      html += '<div class="detail-section" style="margin-top:1.25rem">';
       html += '<div class="detail-section-title">Expenses</div>';
       html += '<table class="expense-table"><thead><tr>';
       html += '<th>Category</th><th>Description</th><th>Date</th><th>Amount</th>';
@@ -265,24 +278,9 @@ var Dashboard = (function () {
       html += '</div>';
     }
 
-    // Sale section — only if there is a sale
-    if (sale && sale.salePriceCents != null) {
-      html += '<div class="detail-section sale-detail">';
-      html += '<div class="detail-section-title">Sale</div>';
-      html += '<div class="detail-grid">';
-      html += detailRow('Sale Price', Utils.formatCurrency(sale.salePriceCents));
-      html += detailRow('Sale Date', Utils.formatDate(sale.saleDate));
-      html += detailRow('Buyer / Platform', sale.buyerOrPlatform);
-      if (sale.notes) {
-        html += detailRow('Notes', sale.notes);
-      }
-      html += '</div>';
-      html += '</div>';
-    }
-
     // Images section — only if there are images
     if (images.length > 0) {
-      html += '<div class="detail-section">';
+      html += '<div class="detail-section" style="margin-top:1.25rem">';
       html += '<div class="detail-section-title">Images</div>';
       html += '<div class="image-gallery">';
       images.forEach(function (img) {
