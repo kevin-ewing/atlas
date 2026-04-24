@@ -112,7 +112,7 @@ class TestAuthLoginFlow:
     def test_missing_token_returns_401(self, aws):
         """Req 1.7: Request without token → 401."""
         resp = lambda_handler(
-            {"routeKey": "GET /watches", "headers": {}, "pathParameters": {}},
+            {"routeKey": "POST /watches", "headers": {}, "pathParameters": {}, "body": '{"maker":"X","model":"Y"}'},
             None,
         )
         assert resp["statusCode"] == 401
@@ -120,7 +120,7 @@ class TestAuthLoginFlow:
     def test_invalid_token_returns_401(self, aws):
         """Req 1.7: Request with invalid token → 401."""
         resp = lambda_handler(
-            _authenticated_event("GET /watches", "not.a.valid.token"),
+            _authenticated_event("POST /watches", "not.a.valid.token"),
             None,
         )
         assert resp["statusCode"] == 401

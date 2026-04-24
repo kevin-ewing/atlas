@@ -152,7 +152,7 @@ var Auth = (function () {
 
   function logout() {
     Api.clearToken();
-    App.navigateTo('/login');
+    App.navigateTo('/dashboard');
   }
 
   return {

@@ -81,7 +81,6 @@ var Api = (function () {
       .then(function (response) {
         if (response.status === 401) {
           clearToken();
-          App.navigateTo('/login');
           return Promise.reject(new Error('Unauthorized'));
         }
         return response;

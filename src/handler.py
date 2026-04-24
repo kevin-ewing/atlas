@@ -129,8 +129,16 @@ ROUTES = {
     "GET /portfolio/summary": _route_portfolio_summary,
 }
 
-# The only route that does NOT require authentication.
-PUBLIC_ROUTES = {"POST /auth/login"}
+# Routes that do NOT require authentication (all read-only GET routes + login).
+PUBLIC_ROUTES = {
+    "POST /auth/login",
+    "GET /watches",
+    "GET /watches/{watchId}",
+    "GET /watches/{watchId}/expenses",
+    "GET /watches/{watchId}/sale",
+    "GET /watches/{watchId}/images",
+    "GET /portfolio/summary",
+}
 
 
 # ---------------------------------------------------------------------------

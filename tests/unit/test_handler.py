@@ -67,7 +67,16 @@ class TestRouteTable:
             assert route in self.EXPECTED_ROUTES, f"Unexpected route: {route}"
 
     def test_only_login_is_public(self):
-        assert PUBLIC_ROUTES == {"POST /auth/login"}
+        expected_public = {
+            "POST /auth/login",
+            "GET /watches",
+            "GET /watches/{watchId}",
+            "GET /watches/{watchId}/expenses",
+            "GET /watches/{watchId}/sale",
+            "GET /watches/{watchId}/images",
+            "GET /portfolio/summary",
+        }
+        assert PUBLIC_ROUTES == expected_public
 
 
 # ---------------------------------------------------------------------------
@@ -78,26 +87,26 @@ class TestAuthentication:
     """Test JWT authentication enforcement."""
 
     def test_missing_auth_header_returns_401(self):
-        event = _make_event("GET /watches")
+        event = _make_event("POST /watches", body={"maker": "X", "model": "Y"})
         result = lambda_handler(event, None)
         assert result["statusCode"] == 401
         body = json.loads(result["body"])
         assert body["error"]["code"] == "UNAUTHORIZED"
 
     def test_malformed_auth_header_returns_401(self):
-        event = _make_event("GET /watches", headers={"authorization": "Basic abc"})
+        event = _make_event("POST /watches", headers={"authorization": "Basic abc"}, body={"maker": "X", "model": "Y"})
         result = lambda_handler(event, None)
         assert result["statusCode"] == 401
 
     def test_empty_bearer_token_returns_401(self):
-        event = _make_event("GET /watches", headers={"authorization": "Bearer "})
+        event = _make_event("POST /watches", headers={"authorization": "Bearer "}, body={"maker": "X", "model": "Y"})
         result = lambda_handler(event, None)
         assert result["statusCode"] == 401
 
     @patch("src.handler.auth_service")
     def test_invalid_token_returns_401(self, mock_auth):
         mock_auth.validate_token.side_effect = Exception("invalid token")
-        event = _make_event("GET /watches", headers=_bearer_header("bad-token"))
+        event = _make_event("POST /watches", headers=_bearer_header("bad-token"), body={"maker": "X", "model": "Y"})
         result = lambda_handler(event, None)
         assert result["statusCode"] == 401
 
@@ -105,10 +114,10 @@ class TestAuthentication:
     @patch("src.handler.watch_service")
     def test_valid_token_passes_through(self, mock_watch, mock_auth):
         mock_auth.validate_token.return_value = {"sub": "admin"}
-        mock_watch.list_watches.return_value = json_response(200, {"watches": []})
-        event = _make_event("GET /watches", headers=_bearer_header())
+        mock_watch.create_watch.return_value = json_response(201, {"watchId": "123"})
+        event = _make_event("POST /watches", headers=_bearer_header(), body={"maker": "X", "model": "Y"})
         result = lambda_handler(event, None)
-        assert result["statusCode"] == 200
+        assert result["statusCode"] == 201
 
     @patch("src.handler.auth_service")
     def test_login_does_not_require_auth(self, mock_auth):
@@ -118,6 +127,14 @@ class TestAuthentication:
         assert result["statusCode"] == 200
         # validate_token should NOT have been called
         mock_auth.validate_token.assert_not_called()
+
+    @patch("src.handler.watch_service")
+    def test_public_get_routes_do_not_require_auth(self, mock_watch):
+        """GET /watches should be accessible without authentication."""
+        mock_watch.list_watches.return_value = json_response(200, {"watches": []})
+        event = _make_event("GET /watches")
+        result = lambda_handler(event, None)
+        assert result["statusCode"] == 200
 
 
 # ---------------------------------------------------------------------------

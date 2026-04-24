@@ -48,7 +48,8 @@
             <li><a href="#/portfolio" class="nav-link" data-route="portfolio">Portfolio</a></li>
           </ul>
         </nav>
-        <button id="btn-logout" class="btn btn-text" type="button" aria-label="Sign out">Sign Out</button>
+        <button id="btn-logout" class="btn btn-text" type="button" aria-label="Sign out" hidden>Sign Out</button>
+        <a href="#/login" id="btn-admin-login" class="btn btn-text" aria-label="Admin login">Admin</a>
       </div>
     </header>
 
@@ -57,7 +58,7 @@
       <section id="view-dashboard" class="view" hidden>
         <div class="view-header">
           <h2>My Watches</h2>
-          <a href="#/watches/new" class="btn btn-primary btn-sm">+ Add Watch</a>
+          <a href="#/watches/new" id="btn-add-watch" class="btn btn-primary btn-sm" hidden>+ Add Watch</a>
         </div>
         <div id="watch-list" class="watch-grid" role="list" aria-label="Watch collection"></div>
         <p id="watch-list-empty" class="empty-state" hidden>No watches yet. Add your first watch to get started.</p>

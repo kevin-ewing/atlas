@@ -1,14 +1,18 @@
 /**
  * App module — SPA router and initialization.
  * Uses hash-based routing (#/dashboard, #/watches/new, etc.).
+ *
+ * The site is publicly viewable (read-only). Logging in grants admin
+ * access for creating, editing, and deleting watches.
  */
 var App = (function () {
   'use strict';
 
   var _routes = [
     { pattern: /^\/dashboard$/, view: 'dashboard', handler: showDashboard },
-    { pattern: /^\/watches\/new$/, view: 'watches-new', handler: showWatchFormNew },
-    { pattern: /^\/watches\/([^/]+)\/edit$/, view: 'watches-edit', handler: showWatchFormEdit },
+    { pattern: /^\/login$/, view: 'login', handler: showLogin },
+    { pattern: /^\/watches\/new$/, view: 'watches-new', handler: showWatchFormNew, admin: true },
+    { pattern: /^\/watches\/([^/]+)\/edit$/, view: 'watches-edit', handler: showWatchFormEdit, admin: true },
     { pattern: /^\/portfolio$/, view: 'portfolio', handler: showPortfolio }
   ];
 
@@ -23,6 +27,15 @@ var App = (function () {
       });
     }
 
+    // Admin login link
+    var adminLink = document.getElementById('btn-admin-login');
+    if (adminLink) {
+      adminLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        navigateTo('/login');
+      });
+    }
+
     // Listen for hash changes
     window.addEventListener('hashchange', onRouteChange);
 
@@ -30,24 +43,13 @@ var App = (function () {
     onRouteChange();
   }
 
+  function isAdmin() {
+    return Api.isAuthenticated();
+  }
+
   function onRouteChange() {
     var hash = window.location.hash || '';
     var path = hash.replace(/^#/, '') || '/dashboard';
-
-    // If not authenticated, show login
-    if (!Api.isAuthenticated()) {
-      if (path !== '/login') {
-        // Preserve intended destination (optional)
-      }
-      showLogin();
-      return;
-    }
-
-    // If authenticated but on login page, redirect to dashboard
-    if (path === '/login') {
-      navigateTo('/dashboard');
-      return;
-    }
 
     // Match route
     var matched = false;
@@ -55,19 +57,50 @@ var App = (function () {
       var route = _routes[i];
       var match = path.match(route.pattern);
       if (match) {
-        hideAllViews();
-        showAppShell();
-        updateActiveNav(route.view);
-        route.handler(match);
+        // Admin-only routes require authentication
+        if (route.admin && !isAdmin()) {
+          navigateTo('/dashboard');
+          return;
+        }
+
+        if (route.view === 'login') {
+          // Show login page
+          hideAppShell();
+          hideAllViews();
+          var loginPage = document.getElementById('page-login');
+          if (loginPage) loginPage.hidden = false;
+          Auth.show();
+        } else {
+          hideAllViews();
+          showAppShell();
+          updateActiveNav(route.view);
+          route.handler(match);
+        }
         matched = true;
         break;
       }
     }
 
     if (!matched) {
-      // Default to dashboard
       navigateTo('/dashboard');
     }
+
+    updateAdminUI();
+  }
+
+  /** Show/hide UI elements based on admin (logged-in) state. */
+  function updateAdminUI() {
+    var admin = isAdmin();
+
+    // Header buttons
+    var logoutBtn = document.getElementById('btn-logout');
+    var adminLink = document.getElementById('btn-admin-login');
+    if (logoutBtn) logoutBtn.hidden = !admin;
+    if (adminLink) adminLink.hidden = admin;
+
+    // Dashboard "Add Watch" button
+    var addWatchBtn = document.getElementById('btn-add-watch');
+    if (addWatchBtn) addWatchBtn.hidden = !admin;
   }
 
   function navigateTo(path) {
@@ -80,11 +113,7 @@ var App = (function () {
   }
 
   function showLogin() {
-    hideAppShell();
-    hideAllViews();
-    var loginPage = document.getElementById('page-login');
-    if (loginPage) loginPage.hidden = false;
-    Auth.show();
+    // handled inline in onRouteChange
   }
 
   function showAppShell() {
@@ -173,6 +202,7 @@ var App = (function () {
   return {
     navigateTo: navigateTo,
     showLoading: showLoading,
-    hideLoading: hideLoading
+    hideLoading: hideLoading,
+    isAdmin: isAdmin
   };
 })();

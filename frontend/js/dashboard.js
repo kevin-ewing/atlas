@@ -313,11 +313,13 @@ var Dashboard = (function () {
       html += '</div>';
     }
 
-    // Actions
-    html += '<div class="watch-card-actions">';
-    html += '<a href="#/watches/' + watchId + '/edit" class="btn btn-secondary btn-sm">Edit</a>';
-    html += '<button type="button" class="btn btn-danger btn-sm" data-delete-watch="' + watchId + '">Delete</button>';
-    html += '</div>';
+    // Actions — admin only
+    if (App.isAdmin()) {
+      html += '<div class="watch-card-actions">';
+      html += '<a href="#/watches/' + watchId + '/edit" class="btn btn-secondary btn-sm">Edit</a>';
+      html += '<button type="button" class="btn btn-danger btn-sm" data-delete-watch="' + watchId + '">Delete</button>';
+      html += '</div>';
+    }
 
     container.innerHTML = html;
 
